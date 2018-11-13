@@ -1,5 +1,3 @@
-
-
 class Game {
     
     constructor(board){
@@ -36,10 +34,12 @@ class Game {
     }
     
     nextPlayer(){
-        this.activePlayer = myGame.active === "yellow" ? "red" : "yellow";
+        this.activePlayer = this.activePlayer === "yellow" ? "red" : "yellow";
         this.disksPlayed += 1;
-        console.log('you have played ' + myGame.disksPlayed + ' times.');
+        console.log('you have played ' + this.disksPlayed + ' times.');
         this.checkForHorizontalWin();
+        this.checkForVerticalWin();
+
     }
 
     getWholeLine(lineNumber, orientation){
@@ -51,17 +51,18 @@ class Game {
         return lineCells;
     }
 
-    colorizeCell(e){
+    colorizeCell(cell){
+        // console.log(cell, this)
         // get all cells in the clicked column
-      let colCells = myGame.getWholeLine(e.target.dataset.col, 'col');
+      let colCells = this.getWholeLine(cell.dataset.col, 'col');
         
-        //scan column from the bottom up, looking for a free cell
+        // scan column from the bottom up, looking for a free cell
 
         for(let i = 5; i >= 0 ; i--){
             if(!colCells[i].dataset.color){
-                colCells[i].classList.add(myGame.activePlayer);
-                colCells[i].setAttribute('data-color', myGame.activePlayer);
-                myGame.nextPlayer();
+                colCells[i].classList.add(this.activePlayer);
+                colCells[i].setAttribute('data-color', this.activePlayer);
+                this.nextPlayer();
                 break;
             }
         }
@@ -71,29 +72,44 @@ class Game {
       
         for(let i = 5; i >= 0 ; i--){   
             let currentRow = this.getWholeLine(String(i), 'row');
-            let currentColor = '' ;
             let colorStreak = 0;
-            for(let j = 0; j < 7; j++){
-                    
-                    if (currentRow[j].dataset.color && currentRow[j].dataset.color === currentColor){
-                        colorStreak += 1;
-                    }else if(currentRow[j].dataset.color && !currentRow[j].dataset.color === currentColor){
-                        currentColor = currentRow[j].dataset.color;
-                        colorStreak = 0;
-                    }else if(!currentRow[j].dataset.color){
-                        currentColor='';
-                        console.log(' no color!');
-                    }                  
+
+            for(let j = 1; j < 7; j++){ // starting from second column, compare cell color to previous cell color and adjust colorStreak
+                        if(currentRow[j].dataset.color && currentRow[j].dataset.color === currentRow[j - 1].dataset.color){
+                            //    debugger;
+                                colorStreak += 1;
+                        } 
+                           //  if  a player has won
+                        if(colorStreak === 3){
+                            this.winner = currentRow[j].dataset.color;
+                            console.log(`${this.winner} win horizontally!`);
+                            return;
+                        }
+                    }         
                  }
-               
-                if(colorStreak === 3){
-                    this.winner = currentColor;
-                    console.log('you win horizontally');
-                    return;
+            }
+
+            checkForVerticalWin(){
+                for(let i = 1; i < 7; i++){
+                    let currentCol = this.getWholeLine(String(i), 'col');
+                    let colorStreak = 0;
+
+                    for(let j = 5; j >= 0; j--){
+                        if(currentCol[j].dataset.color && currentCol[j].dataset.color === currentCol[j - 1].dataset.color){
+                            colorStreak += 1;
+                        }
+
+                        if(colorStreak === 3){
+                            this.winner = currentCol[j].dataset.color;
+                            console.log(`${this.winner} win vertically`)
+                            return;
+                        }
+                    }
                 }
             }
         }
-    }
+        
+     
 
 const boardElt = document.getElementById('game-board');
 let myGame = new Game(boardElt);
@@ -101,7 +117,9 @@ myGame.drawBoard();
 const cells = Array.from(document.getElementsByClassName('cell'));
 
 cells.forEach(cell => {
-    cell.addEventListener('click', myGame.colorizeCell)
+    cell.addEventListener('click', (e) => {
+    myGame.colorizeCell(e.target)
+    })
 })
 
 // user interaction
