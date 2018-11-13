@@ -4,20 +4,25 @@ class Game {
        
         this.board = board;
         this.activePlayer = null;
+        this.prevPlayer;
         this.disksPlayed = 0;
         this.message = '';
-				this.winner = '';
+        this.winner = '';
+        this.cells;
     }
 
-		updateMessage(){
-			let display = document.getElementById('display-message');
+	updateMessage(){
+        let display = document.getElementById('display-message');
+        let displayWrapper = document.getElementById('display');
+        if(this.winner){
+           this.message = `${this.winner} won the game!`;
+        }else{
+            this.message = `${this.activePlayer} are playing`;
+        }
+        display.textContent = this.message;
+        displayWrapper.style.backgroundColor = this.activePlayer;
+    }
 
-			if(this.winner){
-				display.textContent = `${this.winner} won the game!`;
-			}else{
-				display.textContent = `${this.activePlayer} are playing`;
-			}
-		}
     drawBoard(){        
         // draw a 6 x 7 board; each cell has a 'data-col' and 'data-row' attribute for coordinates
 
@@ -30,34 +35,54 @@ class Game {
             this.board.appendChild(newCell);
           }
       }
-      
       this.start();
+      this.cells = Array.from(document.getElementsByClassName('cell'));
+      this.activateBoard();
     }
 
     start(){
+        this.winner = null;
         let dice = Math.random();
 				this.activePlayer = dice > .5 ? 'yellow' : 'red' ;
 				this.updateMessage();
     }
+
+    activateBoard(){
+        this.cells.forEach(cell => {
+            cell.addEventListener('click', (e) => {
+                this.colorizeCell(e.target);
+            })
+        })
+    }
+
 
     get active(){
         return this.activePlayer;
     }
     
     nextPlayer(){
+        this.prevPlayer = this.activePlayer;
         this.activePlayer = this.activePlayer === "yellow" ? "red" : "yellow";
         this.disksPlayed += 1;
         console.log('you have played ' + this.disksPlayed + ' times.');
         this.checkForHorizontalWin();
         this.checkForVerticalWin();
-				this.checkForDiagonalWin();
-				this.updateMessage();
+        this.checkForDiagonalWin();
+        this.updateMessage();
+        if(this.winner){
+            window.setTimeout(() => {
+                alert(this.message)
+                this.board.innerHTML = '';
+                this.drawBoard();
+                
+            }, 500)
+        }    
     }
 
     getWholeLine(lineNumber, orientation){
         //get either the whole row or the whole column clicked, default is 'row'
         let attribute = orientation === 'col' ? 'data-col' : 'data-row';
-        let lineCells = cells.filter(cell => {
+        let lineCells = this.cells.filter(cell => {
             return cell.getAttribute(attribute) === lineNumber;
         })
         return lineCells;
@@ -71,8 +96,37 @@ class Game {
         // scan column from the bottom up, looking for a free cell
 
         for(let i = 5; i >= 0 ; i--){
-            if(!colCells[i].dataset.color){
-                colCells[i].classList.add(this.activePlayer); // add class 'yellow' or 'red' to first blank cell
+            if(!colCells[i].dataset.color){ 
+                /* if column is not filled up to the top, add and then remove 'yellow' or 'red' successively to cells, from top to bottom, 
+                to create the illusion of a dropping disk */
+                if(i > 0){
+                    let coloredIndex = 0;
+                    colCells[0].classList.add(this.activePlayer);
+                     console.log(coloredIndex)
+                    let dropping  = window.setInterval(() => {
+                        colCells[0].classList.remove(this.prevPlayer);
+
+                        colCells[coloredIndex].classList.remove(this.prevPlayer);
+                        console.log(coloredIndex)
+                      
+                        if(coloredIndex < i){
+                            coloredIndex++;
+                            colCells[coloredIndex].classList.add(this.prevPlayer);
+                        }else if(coloredIndex === i){
+                            colCells[coloredIndex].classList.add(this.prevPlayer);
+                            window.clearInterval(dropping);
+                        }
+                        
+                    }, 25)
+                }else{
+                    colCells[i].classList.add(this.activePlayer);
+
+                }
+                /*
+
+                add css class successively to each blank cell atop the target cell
+                */
+             // add class 'yellow' or 'red' to first blank cell
                 colCells[i].setAttribute('data-color', this.activePlayer);
                 this.nextPlayer();
                 break;
@@ -119,7 +173,7 @@ class Game {
                 if(colorStreak === 3){
                     this.winner = currentCol[j].dataset.color;
                     console.log(`${this.winner} win vertically`)
-                    return;
+                    return ;
                 }
             }
         }
@@ -165,28 +219,23 @@ class Game {
 								}
 								if(colorStreak === 3){
 									let winner = this.activePlayer === 'red' ? 'yellow' : 'red';
-									this.winner = winner;
+                                    this.winner = winner;
+                                    return ;
 								}
+                    }
+                }
             }
         }
     }
-	}
- 
-}
+
         
 const boardElt = document.getElementById('game-board');
 let myGame = new Game(boardElt);
 myGame.drawBoard();
-const cells = Array.from(document.getElementsByClassName('cell'));
-console.log(cells);
 
 
-cells.forEach(cell => {
-    cell.addEventListener('click', (e) => {
-		myGame.colorizeCell(e.target)
-		console.log(myGame.activePlayer);
-    })
-})
+
+
 
 // user interaction
 
